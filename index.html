@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Web-BLE → ESP32</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button, textarea { margin: 6px 0; width: 100%; max-width: 500px; }
+  </style>
+</head>
+<body>
+  <h2>Send data to ESP32 (Web-Bluetooth)</h2>
+  <button id="connect">Connect to ESP32</button>
+  <div id="status">Not connected</div>
+
+  <label>Text to send:</label>
+  <input id="text" type="text" placeholder="Hello ESP32" />
+
+  <button id="sendText">Send Text</button>
+
+  <label>Hex bytes to send (e.g. 01 ff 0a):</label>
+  <input id="hex" type="text" placeholder="01 ff 0a" />
+
+  <button id="sendHex">Send Hex</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    const SERVICE_UUID = 'a12f0001-0000-1000-8000-00805f9b34fb';
+    const CHARACTERISTIC_UUID = 'a12f0002-0000-1000-8000-00805f9b34fb';
+
+    let device = null;
+    let characteristic = null;
+
+    function log(msg) {
+      const p = document.getElementById('log');
+      p.textContent += msg + '\n';
+      p.scrollTop = p.scrollHeight;
+    }
+
+    document.getElementById('connect').addEventListener('click', async () => {
+      try {
+        log('Requesting device...');
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [SERVICE_UUID] }],
+          optionalServices: [SERVICE_UUID]
+        });
+        log('Connecting to GATT server...');
+        const server = await device.gatt.connect();
+        log('Getting service...');
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        log('Getting characteristic...');
+        characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+        document.getElementById('status').textContent = 'Connected to: ' + (device.name || device.id);
+        log('Ready to send.');
+      } catch (err) {
+        log('Error: ' + err);
+      }
+    });
+
+    // send text (UTF-8)
+    document.getElementById('sendText').addEventListener('click', async () => {
+      const text = document.getElementById('text').value;
+      if (!characteristic) { log('Not connected'); return; }
+      try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        // chunking if needed
+        await writeChunks(characteristic, data);
+        log('Sent text: ' + text);
+      } catch (err) {
+        log('Send error: ' + err);
+      }
+    });
+
+    // send hex bytes
+    document.getElementById('sendHex').addEventListener('click', async () => {
+      const hex = document.getElementById('hex').value.trim();
+      if (!characteristic) { log('Not connected'); return; }
+      try {
+        const bytes = hex.split(/\s+/).filter(s => s.length).map(h => parseInt(h, 16));
+        const data = new Uint8Array(bytes);
+        await writeChunks(characteristic, data);
+        log('Sent hex: ' + hex);
+      } catch (err) {
+        log('Send error: ' + err);
+      }
+    });
+
+    // simple chunking function (safe fallback to 20 bytes)
+    async function writeChunks(characteristic, dataUint8) {
+      // Determine chunk size: try to use 200, but safe fallback 20
+      const CHUNK = 100; // reasonable; device may accept larger if MTU bigger
+      for (let i = 0; i < dataUint8.length; i += CHUNK) {
+        const slice = dataUint8.slice(i, i + CHUNK);
+        await characteristic.writeValue(slice);
+      }
+    }
+  </script>
+</body>
+</html>
