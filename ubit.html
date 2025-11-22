@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>micro:bit Web-BLE Controller</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,6 +15,7 @@
       flex-direction: column;
       align-items: center;
     }
+
     .btn {
       padding: 1rem;
       margin: 0.5rem;
@@ -22,6 +25,7 @@
       width: 120px;
       cursor: pointer;
     }
+
     #controls {
       display: grid;
       grid-template-columns: repeat(3, 120px);
@@ -30,25 +34,32 @@
       gap: 20px;
       margin-top: 20px;
     }
+
     #slider {
       width: 80%;
       margin: 20px auto;
     }
+
     img {
       max-width: 60%;
       height: auto;
     }
   </style>
 </head>
+
 <body>
+
   <button id="connectBtn" class="btn">Sambung</button>
+
   <div>
     <img src="logo.png" alt="Logo" />
     <h2>Rumah Edukasi</h2>
     <p>micro:bit controller</p>
   </div>
 
+  <!-- D-pad layout -->
   <div id="controls">
+
     <div></div>
     <button class="btn" data-char="f">maju</button>
     <div></div>
@@ -60,36 +71,51 @@
     <div></div>
     <button class="btn" data-char="b">mundur</button>
     <div></div>
-  </div>
+
   </div>
 
   <input type="range" id="slider" min="0" max="9" value="0" />
 
   <script>
     let device = null;
-    let characteristic = null;
+    let txChar = null;
+    let rxChar = null;
 
-    const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-    const CHAR_UUID    = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // RX, write from browser
+    // CORRECT micro:bit UART UUIDs
+    const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const UART_TX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // write
+    const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // notify
 
     async function connect() {
       try {
         device = await navigator.bluetooth.requestDevice({
           filters: [{ namePrefix: "BBC micro:bit" }],
-          optionalServices: [SERVICE_UUID]
+          optionalServices: [UART_SERVICE_UUID]
         });
 
         const server = await device.gatt.connect();
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        characteristic = await service.getCharacteristic(CHAR_UUID);
+        const service = await server.getPrimaryService(UART_SERVICE_UUID);
+
+        txChar = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
+        rxChar = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
+
+        // Start receiving
+        await rxChar.startNotifications();
+        rxChar.addEventListener("characteristicvaluechanged", event => {
+          const msg = new TextDecoder().decode(event.target.value);
+          console.log("Received:", msg);
+        });
+
         document.getElementById("connectBtn").innerText = "Putus";
-      } catch (err) {
-        alert(err);
+      } catch (error) {
+        alert("Connection failed: " + error);
       }
     }
 
     async function disconnect() {
-      if (device && device.gatt.connected) device.gatt.disconnect();
+      if (device && device.gatt.connected) {
+        device.gatt.disconnect();
+      }
       document.getElementById("connectBtn").innerText = "Sambung";
     }
 
@@ -98,18 +124,22 @@
       else disconnect();
     };
 
+    // Button controls
     document.querySelectorAll("[data-char]").forEach(btn => {
       btn.onclick = async () => {
-        if (!characteristic) return alert("Not connected!");
+        if (!txChar) return alert("Belum terhubung!");
         const value = btn.getAttribute("data-char");
-        await characteristic.writeValue(new TextEncoder().encode(value));
+        await txChar.writeValue(new TextEncoder().encode(value));
       };
     });
 
-    document.getElementById("slider").oninput = async (e) => {
-      if (!characteristic) return;
-      await characteristic.writeValue(new TextEncoder().encode(String(e.target.value)));
+    // Slider control
+    document.getElementById("slider").oninput = async e => {
+      if (!txChar) return;
+      const v = String(e.target.value);
+      await txChar.writeValue(new TextEncoder().encode(v));
     };
   </script>
 </body>
+
 </html>
