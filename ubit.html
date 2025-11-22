@@ -29,7 +29,7 @@
     #controls {
       display: grid;
       grid-template-columns: repeat(3, 120px);
-      justify-content: center;
+      justify-items: center;
       align-items: center;
       gap: 20px;
       margin-top: 20px;
@@ -57,9 +57,7 @@
     <p>micro:bit controller</p>
   </div>
 
-  <!-- D-pad layout -->
   <div id="controls">
-
     <div></div>
     <button class="btn" data-char="f">maju</button>
     <div></div>
@@ -71,75 +69,105 @@
     <div></div>
     <button class="btn" data-char="b">mundur</button>
     <div></div>
-
   </div>
 
   <input type="range" id="slider" min="0" max="9" value="0" />
 
   <script>
-    let device = null;
-    let txChar = null;
-    let rxChar = null;
-
-    // CORRECT micro:bit UART UUIDs
+    // micro:bit UART UUIDs
     const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-    const UART_TX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // write
-    const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // notify
+    const UART_TX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Notify (microbit → web)
+    const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // Write  (web → microbit)
 
+    let uBitDevice = null;
+    let rxCharacteristic = null;
+    let txCharacteristic = null;
+
+    // ---- GATT OPERATION QUEUE (required for micro:bit) ----
+    let queue = Promise.resolve();
+    function queueGattOperation(operation) {
+      queue = queue.then(operation, operation);
+      return queue;
+    }
+
+    // ---- CONNECT ----
     async function connect() {
       try {
-        device = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: "BBC micro:bit" }],
+        uBitDevice = await navigator.bluetooth.requestDevice({
+          filters: [
+            { namePrefix: "BBC micro:bit" },
+            { namePrefix: "Calliope mini" }
+          ],
           optionalServices: [UART_SERVICE_UUID]
         });
 
-        const server = await device.gatt.connect();
+        uBitDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        const server = await uBitDevice.gatt.connect();
         const service = await server.getPrimaryService(UART_SERVICE_UUID);
 
-        txChar = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
-        rxChar = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
+        // RX = web → micro:bit
+        rxCharacteristic = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
 
-        // Start receiving
-        await rxChar.startNotifications();
-        rxChar.addEventListener("characteristicvaluechanged", event => {
-          const msg = new TextDecoder().decode(event.target.value);
-          console.log("Received:", msg);
-        });
+        // TX = micro:bit → web
+        txCharacteristic = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
+        await txCharacteristic.startNotifications();
+        txCharacteristic.addEventListener("characteristicvaluechanged", onTx);
 
         document.getElementById("connectBtn").innerText = "Putus";
+        console.log("CONNECTED!");
+
       } catch (error) {
         alert("Connection failed: " + error);
       }
     }
 
-    async function disconnect() {
-      if (device && device.gatt.connected) {
-        device.gatt.disconnect();
-      }
+    // ---- DISCONNECT ----
+    function disconnect() {
+      if (uBitDevice && uBitDevice.gatt.connected)
+        uBitDevice.gatt.disconnect();
+
       document.getElementById("connectBtn").innerText = "Sambung";
     }
 
+    function onDisconnected() {
+      console.log("Disconnected");
+      rxCharacteristic = null;
+      txCharacteristic = null;
+      document.getElementById("connectBtn").innerText = "Sambung";
+    }
+
+    // ---- RECEIVE DATA ----
+    function onTx(event) {
+      let data = new Uint8Array(event.target.value.buffer);
+      console.log("Received:", String.fromCharCode(...data));
+    }
+
+    // ---- SEND DATA ----
+    async function sendUART(text) {
+      if (!rxCharacteristic) return alert("Not connected!");
+
+      const data = new TextEncoder().encode(text + "\n");
+
+      queueGattOperation(() =>
+        rxCharacteristic.writeValue(data)
+      );
+    }
+
+    // Button events
     document.getElementById("connectBtn").onclick = () => {
-      if (!device || !device.gatt.connected) connect();
+      if (!uBitDevice || !uBitDevice.gatt.connected) connect();
       else disconnect();
     };
 
-    // Button controls
     document.querySelectorAll("[data-char]").forEach(btn => {
-      btn.onclick = async () => {
-        if (!txChar) return alert("Belum terhubung!");
-        const value = btn.getAttribute("data-char");
-        await txChar.writeValue(new TextEncoder().encode(value));
-      };
+      btn.onclick = () => sendUART(btn.dataset.char);
     });
 
-    // Slider control
-    document.getElementById("slider").oninput = async e => {
-      if (!txChar) return;
-      const v = String(e.target.value);
-      await txChar.writeValue(new TextEncoder().encode(v));
+    document.getElementById("slider").oninput = e => {
+      sendUART(String(e.target.value));
     };
   </script>
-</body>
 
+</body>
 </html>
