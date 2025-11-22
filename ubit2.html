@@ -15,6 +15,8 @@
       flex-direction: column;
       align-items: center;
       background-color: #f5f5f5;
+      margin: 0;
+      min-height: 100vh;
     }
 
     .btn {
@@ -27,24 +29,39 @@
       cursor: pointer;
       border: none;
       transition: all 0.2s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
     .btn:hover {
       background: #d0d0d0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
 
     .btn:active {
       background: #c0c0c0;
-      transform: scale(0.98);
+      transform: translateY(0);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .btn:disabled {
+      background: #f0f0f0;
+      color: #a0a0a0;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     #connectBtn {
       background-color: #4CAF50;
       color: white;
       font-weight: bold;
+      padding: 12px 24px;
+      width: auto;
+      min-width: 150px;
     }
 
-    #connectBtn.disconnected {
+    #connectBtn.connected {
       background-color: #f44336;
     }
 
@@ -60,76 +77,151 @@
     #slider {
       width: 80%;
       margin: 20px auto;
-    }
-
-    img {
-      max-width: 60%;
-      height: auto;
-      margin-bottom: 10px;
+      height: 25px;
     }
 
     .status {
       margin: 10px 0;
-      padding: 8px;
-      border-radius: 4px;
+      padding: 12px;
+      border-radius: 6px;
       font-weight: bold;
+      width: 80%;
+      max-width: 300px;
     }
 
     .status.connected {
       background-color: #d4edda;
       color: #155724;
+      border: 1px solid #c3e6cb;
     }
 
     .status.disconnected {
       background-color: #f8d7da;
       color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status.scanning {
+      background-color: #cce7ff;
+      color: #004085;
+      border: 1px solid #b3d7ff;
     }
 
     .container {
       background-color: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       max-width: 500px;
       width: 100%;
+      margin: 20px auto;
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, #4CAF50, #2196F3);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      margin: 0 auto 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .logo-text {
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .logo-title {
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .slider-container {
+      width: 100%;
+      margin: 25px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 10px;
+    }
+
+    .slider-label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .debug {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 5px;
+      padding: 10px;
+      margin-top: 20px;
+      text-align: left;
+      max-height: 150px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .debug-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #495057;
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <button id="connectBtn" class="btn disconnected">Sambung</button>
-    <div id="status" class="status disconnected">Tidak Terhubung</div>
+    <button id="connectBtn" class="btn">Sambung ke micro:bit</button>
+    <div id="status" class="status disconnected">Tidak Terhubung - Klik 'Sambung' untuk menghubungkan</div>
 
-    <div>
-      <!-- Using a placeholder image - replace with your actual logo.png -->
-      <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <rect x="10" y="10" width="80" height="80" rx="10" fill="#4CAF50" />
-        <text x="50" y="45" text-anchor="middle" fill="white" font-family="Arial" font-size="14">LOGO</text>
-        <text x="50" y="65" text-anchor="middle" fill="white" font-family="Arial" font-size="10">Rumah</text>
-        <text x="50" y="78" text-anchor="middle" fill="white" font-family="Arial" font-size="10">Edukasi</text>
-      </svg>
-      <h2>Rumah Edukasi</h2>
-      <p>micro:bit controller</p>
+    <div class="logo">
+      <img src="logo.png" alt="Logo" />
     </div>
+    
+    <h1>Rumah Edukasi</h1>
+    <p class="subtitle">micro:bit Controller</p>
 
     <div id="controls">
       <div></div>
-      <button class="btn" data-char="f">maju</button>
+      <button class="btn" data-char="f" id="btnForward">maju</button>
       <div></div>
 
-      <button class="btn" data-char="l">kiri</button>
+      <button class="btn" data-char="l" id="btnLeft">kiri</button>
       <div></div>
-      <button class="btn" data-char="r">kanan</button>
+      <button class="btn" data-char="r" id="btnRight">kanan</button>
 
       <div></div>
-      <button class="btn" data-char="b">mundur</button>
+      <button class="btn" data-char="b" id="btnBack">mundur</button>
       <div></div>
     </div>
 
-    <div>
-      <label for="slider">Kecepatan: <span id="sliderValue">0</span></label>
+    <div class="slider-container">
+      <label for="slider" class="slider-label">Kecepatan: <span id="sliderValue">0</span></label>
       <input type="range" id="slider" min="0" max="9" value="0" />
+    </div>
+
+    <div class="debug">
+      <div class="debug-title">Log Debug:</div>
+      <div id="debugLog"></div>
     </div>
   </div>
 
@@ -142,6 +234,7 @@
     let uBitDevice = null;
     let rxCharacteristic = null;
     let txCharacteristic = null;
+    let isConnected = false;
 
     // ---- GATT OPERATION QUEUE (required for micro:bit) ----
     let queue = Promise.resolve();
@@ -150,115 +243,182 @@
       return queue;
     }
 
+    // ---- DEBUG LOGGING ----
+    function debugLog(message) {
+      const debugElement = document.getElementById('debugLog');
+      const timestamp = new Date().toLocaleTimeString();
+      debugElement.innerHTML += `[${timestamp}] ${message}<br>`;
+      debugElement.scrollTop = debugElement.scrollHeight;
+      console.log(message);
+    }
+
     // ---- CONNECT ----
     async function connect() {
       try {
+        debugLog("Memulai koneksi BLE...");
+        updateConnectionStatus('scanning');
+
+        // Check if Bluetooth is available
+        if (!navigator.bluetooth) {
+          throw new Error('Web Bluetooth tidak didukung di browser ini. Gunakan Chrome, Edge, atau Safari.');
+        }
+
+        // Request micro:bit device
         uBitDevice = await navigator.bluetooth.requestDevice({
           filters: [
             { namePrefix: "BBC micro:bit" },
-            { namePrefix: "Calliope mini" }
+            { namePrefix: "micro:bit" }
           ],
           optionalServices: [UART_SERVICE_UUID]
         });
 
+        if (!uBitDevice) {
+          throw new Error('Tidak ada micro:bit yang ditemukan.');
+        }
+
+        debugLog(`Perangkat ditemukan: ${uBitDevice.name}`);
+        
         uBitDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
+        debugLog("Menghubungkan ke GATT server...");
         const server = await uBitDevice.gatt.connect();
+
+        debugLog("Mengakses UART service...");
         const service = await server.getPrimaryService(UART_SERVICE_UUID);
 
         // RX = web → micro:bit
+        debugLog("Mengakses RX characteristic...");
         rxCharacteristic = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
 
         // TX = micro:bit → web
+        debugLog("Mengakses TX characteristic...");
         txCharacteristic = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
         await txCharacteristic.startNotifications();
         txCharacteristic.addEventListener("characteristicvaluechanged", onTx);
 
-        updateConnectionStatus(true);
-        console.log("CONNECTED!");
+        isConnected = true;
+        updateConnectionStatus('connected');
+        debugLog("BERHASIL TERHUBUNG ke micro:bit!");
 
       } catch (error) {
-        alert("Connection failed: " + error);
-        console.error("Connection error:", error);
+        debugLog(`ERROR: ${error.message}`);
+        updateConnectionStatus('disconnected');
+        
+        if (error.name === 'NotFoundError') {
+          alert("Tidak ada micro:bit yang ditemukan.\n\nPastikan:\n• micro:bit sudah di-flash dengan kode BLE\n• micro:bit dalam jangkauan\n• Bluetooth diaktifkan");
+        } else if (error.name === 'SecurityError') {
+          alert("Izin Bluetooth ditolak.\n\nPastikan Anda memberikan izin akses Bluetooth ke website ini.");
+        } else {
+          alert("Koneksi gagal: " + error.message);
+        }
       }
     }
 
     // ---- DISCONNECT ----
     function disconnect() {
+      debugLog("Memutuskan koneksi...");
       if (uBitDevice && uBitDevice.gatt.connected) {
         uBitDevice.gatt.disconnect();
       }
-      updateConnectionStatus(false);
+      isConnected = false;
+      updateConnectionStatus('disconnected');
     }
 
     function onDisconnected() {
-      console.log("Disconnected");
+      debugLog("Terputus dari micro:bit");
+      isConnected = false;
       rxCharacteristic = null;
       txCharacteristic = null;
-      updateConnectionStatus(false);
+      updateConnectionStatus('disconnected');
     }
 
     // Update UI based on connection status
-    function updateConnectionStatus(connected) {
+    function updateConnectionStatus(status) {
       const connectBtn = document.getElementById("connectBtn");
       const statusDiv = document.getElementById("status");
+      const controlBtns = document.querySelectorAll('#controls .btn');
       
-      if (connected) {
-        connectBtn.innerText = "Putus";
-        connectBtn.classList.remove("disconnected");
-        statusDiv.innerText = "Terhubung ke micro:bit";
-        statusDiv.className = "status connected";
-      } else {
-        connectBtn.innerText = "Sambung";
-        connectBtn.classList.add("disconnected");
-        statusDiv.innerText = "Tidak Terhubung";
-        statusDiv.className = "status disconnected";
+      switch(status) {
+        case 'connected':
+          connectBtn.innerText = "Putuskan";
+          connectBtn.classList.add("connected");
+          statusDiv.innerText = `Terhubung ke: ${uBitDevice?.name || 'micro:bit'}`;
+          statusDiv.className = "status connected";
+          controlBtns.forEach(btn => btn.disabled = false);
+          break;
+          
+        case 'disconnected':
+          connectBtn.innerText = "Sambung ke micro:bit";
+          connectBtn.classList.remove("connected");
+          statusDiv.innerText = "Tidak Terhubung - Klik 'Sambung' untuk menghubungkan";
+          statusDiv.className = "status disconnected";
+          controlBtns.forEach(btn => btn.disabled = true);
+          break;
+          
+        case 'scanning':
+          connectBtn.innerText = "Mencari...";
+          connectBtn.classList.remove("connected");
+          statusDiv.innerText = "Mencari micro:bit...";
+          statusDiv.className = "status scanning";
+          controlBtns.forEach(btn => btn.disabled = true);
+          break;
       }
     }
 
     // ---- RECEIVE DATA ----
     function onTx(event) {
       let data = new Uint8Array(event.target.value.buffer);
-      console.log("Received:", String.fromCharCode(...data));
+      let text = String.fromCharCode(...data).trim();
+      debugLog(`Diterima dari micro:bit: "${text}"`);
     }
 
     // ---- SEND DATA ----
     async function sendUART(text) {
-      if (!rxCharacteristic) {
-        alert("Not connected to micro:bit!");
+      if (!rxCharacteristic || !isConnected) {
+        alert("Tidak terhubung ke micro:bit! Silakan hubungkan terlebih dahulu.");
         return;
       }
 
       const data = new TextEncoder().encode(text + "\n");
 
       try {
-        await queueGattOperation(() =>
-          rxCharacteristic.writeValue(data)
-        );
-        console.log("Sent:", text);
+        await queueGattOperation(() => rxCharacteristic.writeValue(data));
+        debugLog(`Dikirim ke micro:bit: "${text}"`);
       } catch (error) {
-        console.error("Send error:", error);
-        alert("Failed to send data: " + error);
+        debugLog(`ERROR mengirim data: ${error}`);
+        alert("Gagal mengirim data: " + error);
       }
     }
 
-    // Button events
-    document.getElementById("connectBtn").onclick = () => {
-      if (!uBitDevice || !uBitDevice.gatt.connected) {
-        connect();
-      } else {
-        disconnect();
-      }
-    };
+    // ---- INITIALIZE ----
+    document.addEventListener('DOMContentLoaded', function() {
+      debugLog("Aplikasi Web-BLE Controller dimuat");
+      
+      // Connection button
+      document.getElementById("connectBtn").onclick = () => {
+        if (!isConnected) {
+          connect();
+        } else {
+          disconnect();
+        }
+      };
 
-    document.querySelectorAll("[data-char]").forEach(btn => {
-      btn.onclick = () => sendUART(btn.dataset.char);
+      // Direction buttons
+      document.querySelectorAll("[data-char]").forEach(btn => {
+        btn.onclick = () => sendUART(btn.dataset.char);
+      });
+
+      // Slider
+      document.getElementById("slider").oninput = e => {
+        document.getElementById("sliderValue").innerText = e.target.value;
+        sendUART(String(e.target.value));
+      };
+
+      // Disable control buttons initially
+      document.querySelectorAll('#controls .btn').forEach(btn => {
+        btn.disabled = true;
+      });
     });
-
-    document.getElementById("slider").oninput = e => {
-      document.getElementById("sliderValue").innerText = e.target.value;
-      sendUART(String(e.target.value));
-    };
   </script>
 
 </body>
