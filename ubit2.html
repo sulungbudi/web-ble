@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro:bit Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 10px 0;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .connection-status {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .connected {
+            color: #4CAF50;
+        }
+
+        .disconnected {
+            color: #f44336;
+        }
+
+        button {
+            background: linear-gradient(to right, #2196F3, #21CBF3);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            background: linear-gradient(to right, #9E9E9E, #BDBDBD);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #connectBtn {
+            background: linear-gradient(to right, #4CAF50, #8BC34A);
+        }
+
+        #connectBtn.disconnected {
+            background: linear-gradient(to right, #f44336, #FF9800);
+        }
+
+        .direction-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .direction-buttons button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .horizontal-buttons {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .horizontal-buttons button {
+            flex: 1;
+        }
+
+        .slider-container {
+            width: 100%;
+            max-width: 300px;
+            margin-top: 10px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 15px;
+            border-radius: 10px;
+            background: linear-gradient(to right, #2196F3, #21CBF3);
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #21CBF3;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.7rem;
+            }
+            
+            button {
+                padding: 12px 25px;
+                font-size: 1.1rem;
+            }
+            
+            .logo {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="connectBtn">Sambung</button>
+        
+        <div class="connection-status disconnected" id="status">Tidak Tersambung</div>
+        
+        <button id="forwardBtn" disabled>Maju</button>
+        
+        <div class="logo">
+            <!-- In a real implementation, you would use an actual logo.png file -->
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="45" fill="#00B0FF" />
+                <circle cx="50" cy="50" r="35" fill="#0081CB" />
+                <text x="50" y="55" text-anchor="middle" fill="white" font-size="14" font-weight="bold">micro:bit</text>
+            </svg>
+        </div>
+        
+        <h1>micro:bit controller</h1>
+        
+        <div class="horizontal-buttons">
+            <button id="leftBtn" disabled>Kiri</button>
+            <div style="width: 30px;"></div> <!-- Gap -->
+            <button id="rightBtn" disabled>Kanan</button>
+        </div>
+        
+        <button id="backwardBtn" disabled>Mundur</button>
+        
+        <div class="slider-container">
+            <div class="slider-label">
+                <span>0</span>
+                <span>Speed Control</span>
+                <span>9</span>
+            </div>
+            <input type="range" min="0" max="9" value="0" class="slider" id="speedSlider" disabled>
+            <div class="slider-value" id="sliderValue">0</div>
+        </div>
+    </div>
+
+    <script>
+        // Micro:bit Bluetooth UUIDs
+        const MICROBIT_SERVICE_UUID = "e95d93af-251d-470a-a062-fa1922dfa9a8";
+        const MICROBIT_CHARACTERISTIC_UUID = "e95d93b1-251d-470a-a062-fa1922dfa9a8";
+
+        // DOM elements
+        const connectBtn = document.getElementById('connectBtn');
+        const statusDiv = document.getElementById('status');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const backwardBtn = document.getElementById('backwardBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const sliderValue = document.getElementById('sliderValue');
+
+        // Bluetooth variables
+        let microbitDevice = null;
+        let microbitService = null;
+        let microbitCharacteristic = null;
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusDiv.textContent = "Tersambung";
+                statusDiv.className = "connection-status connected";
+                connectBtn.textContent = "Putus";
+                connectBtn.classList.add('disconnected');
+                
+                // Enable all buttons and slider
+                forwardBtn.disabled = false;
+                leftBtn.disabled = false;
+                rightBtn.disabled = false;
+                backwardBtn.disabled = false;
+                speedSlider.disabled = false;
+            } else {
+                statusDiv.textContent = "Tidak Tersambung";
+                statusDiv.className = "connection-status disconnected";
+                connectBtn.textContent = "Sambung";
+                connectBtn.classList.remove('disconnected');
+                
+                // Disable all buttons and slider
+                forwardBtn.disabled = true;
+                leftBtn.disabled = true;
+                rightBtn.disabled = true;
+                backwardBtn.disabled = true;
+                speedSlider.disabled = true;
+            }
+        }
+
+        // Connect to micro:bit
+        async function connectToMicrobit() {
+            try {
+                console.log('Requesting Bluetooth Device...');
+                microbitDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: "BBC micro:bit" }],
+                    optionalServices: [MICROBIT_SERVICE_UUID]
+                });
+
+                console.log('Connecting to GATT Server...');
+                const server = await microbitDevice.gatt.connect();
+
+                console.log('Getting Service...');
+                microbitService = await server.getPrimaryService(MICROBIT_SERVICE_UUID);
+
+                console.log('Getting Characteristic...');
+                microbitCharacteristic = await microbitService.getCharacteristic(MICROBIT_CHARACTERISTIC_UUID);
+
+                updateConnectionStatus(true);
+                
+                // Handle disconnection
+                microbitDevice.addEventListener('gattserverdisconnected', () => {
+                    updateConnectionStatus(false);
+                    microbitDevice = null;
+                    microbitService = null;
+                    microbitCharacteristic = null;
+                });
+
+            } catch (error) {
+                console.error('Connection failed:', error);
+                alert('Gagal menyambung ke micro:bit. Pastikan perangkat tersedia dan Bluetooth aktif.');
+            }
+        }
+
+        // Disconnect from micro:bit
+        function disconnectFromMicrobit() {
+            if (microbitDevice && microbitDevice.gatt.connected) {
+                microbitDevice.gatt.disconnect();
+            }
+            updateConnectionStatus(false);
+            microbitDevice = null;
+            microbitService = null;
+            microbitCharacteristic = null;
+        }
+
+        // Send command to micro:bit
+        async function sendCommand(command) {
+            if (!microbitCharacteristic) {
+                console.error('Not connected to micro:bit');
+                return;
+            }
+
+            try {
+                // Convert command to Uint8Array
+                const encoder = new TextEncoder();
+                const data = encoder.encode(command);
+                
+                // Send data to micro:bit
+                await microbitCharacteristic.writeValue(data);
+                console.log(`Sent command: ${command}`);
+            } catch (error) {
+                console.error('Error sending command:', error);
+            }
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', () => {
+            if (microbitDevice && microbitDevice.gatt.connected) {
+                disconnectFromMicrobit();
+            } else {
+                connectToMicrobit();
+            }
+        });
+
+        forwardBtn.addEventListener('click', () => {
+            sendCommand('f');
+        });
+
+        leftBtn.addEventListener('click', () => {
+            sendCommand('l');
+        });
+
+        rightBtn.addEventListener('click', () => {
+            sendCommand('r');
+        });
+
+        backwardBtn.addEventListener('click', () => {
+            sendCommand('b');
+        });
+
+        speedSlider.addEventListener('input', () => {
+            const value = speedSlider.value;
+            sliderValue.textContent = value;
+            sendCommand(value);
+        });
+
+        // Initialize the app
+        updateConnectionStatus(false);
+    </script>
+</body>
+</html>
